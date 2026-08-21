@@ -19,10 +19,52 @@ st.markdown("""
 <div class="hero"><h1>⚡ LF6 Leitungsplaner</h1><p>Dimensionieren, prüfen und verstehen – Formelsammlung Teil 6 bis 9</p></div>
 """, unsafe_allow_html=True)
 
+PAGES = [
+    "Start",
+    "6 · Leitungsdimensionierung",
+    "7 · Schutzorgane",
+    "8 · Widerstände & Impedanzen",
+    "9 · Spannungsfall",
+]
+
+
+def transfer_from_part_6(target: int) -> None:
+    """Befuellt den Zielteil und wechselt direkt dorthin."""
+    data = st.session_state.get("dimensioning_transfer")
+    if not data:
+        return
+
+    if target == 7:
+        st.session_state["protection_ib"] = float(data["operating_current_a"])
+        st.session_state["protection_iz"] = float(data["ampacity_a"])
+        st.session_state["protection_nominal"] = int(data["rated_current_a"])
+        st.session_state["protection_from_section"] = float(data["section_mm2"])
+    elif target == 8:
+        st.session_state["resistance_material"] = data["material"]
+        st.session_state["resistance_length"] = float(data["length_m"])
+        st.session_state["resistance_section"] = float(data["section_mm2"])
+        st.session_state["resistance_temperature"] = float(data["temperature_c"])
+        st.session_state["resistance_from_part6"] = True
+    elif target == 9:
+        st.session_state["drop_current"] = float(data["operating_current_a"])
+        st.session_state["drop_length"] = float(data["length_m"])
+        st.session_state["drop_section"] = float(data["section_mm2"])
+        st.session_state["drop_material"] = data["material"]
+        st.session_state["drop_network"] = (
+            "Drehstrom 400 V" if data["phases"] == 3 else "Wechselstrom 230 V"
+        )
+        st.session_state["drop_power_factor"] = float(data["power_factor"])
+        st.session_state["drop_temperature"] = float(data["temperature_c"])
+        st.session_state["drop_line_type"] = data["line_type"]
+        st.session_state["drop_from_part6"] = True
+
+    st.session_state["active_page"] = PAGES[target - 5]
+
 with st.sidebar:
     st.header("Arbeitsbereich")
-    page = st.radio("Navigation", ["Start", "6 · Leitungsdimensionierung", "7 · Schutzorgane",
-                                    "8 · Widerstände & Impedanzen", "9 · Spannungsfall"], label_visibility="collapsed")
+    page = st.radio(
+        "Navigation", PAGES, label_visibility="collapsed", key="active_page"
+    )
     st.divider()
     st.caption("Fachliche Basis: Formelsammlung LF6, Version 1.0.1. Ergebnisse sind rechnerische Planungshilfen und ersetzen keine Normenprüfung.")
 
@@ -70,6 +112,12 @@ elif page == "6 · Leitungsdimensionierung":
                 "ampacity_a": result.corrected_ampacity_a,
                 "rated_current_a": result.fuse_a,
                 "section_mm2": result.section_mm2,
+                "length_m": length,
+                "material": material,
+                "temperature_c": temp,
+                "power_factor": cosphi,
+                "phases": 3 if phases_label == "Drehstrom" else 1,
+                "line_type": reactance,
             }
             st.markdown('<div class="ok"><b>Dimensionierung erfolgreich:</b> Belastbarkeit, Schutz und Spannungsfall sind rechnerisch erfüllt.</div>', unsafe_allow_html=True)
             m=st.columns(5)
@@ -78,6 +126,35 @@ elif page == "6 · Leitungsdimensionierung":
             st.write(f"Vorgeschlagenes Schutzorgan: **{result.fuse_a} A** · Absoluter Spannungsfall: **{result.drop_v:.2f} V**")
         else:
             st.error("Mit den verfügbaren Tabellenwerten bis 300 mm² wurde keine vollständig gültige Kombination gefunden. Korrekturfaktoren, Leitungslänge oder Verlegeart prüfen.")
+
+    transfer = st.session_state.get("dimensioning_transfer")
+    if transfer:
+        st.markdown("#### Ergebnis direkt weiterverwenden")
+        st.caption(
+            f"Letzte gültige Berechnung: {transfer['section_mm2']:g} mm² · "
+            f"Iᴮ {transfer['operating_current_a']:.2f} A · "
+            f"{transfer['length_m']:g} m · {transfer['material']}"
+        )
+        target_7, target_8, target_9 = st.columns(3)
+        target_7.button(
+            "→ In Teil 7 übernehmen",
+            type="primary",
+            use_container_width=True,
+            on_click=transfer_from_part_6,
+            args=(7,),
+        )
+        target_8.button(
+            "→ In Teil 8 übernehmen",
+            use_container_width=True,
+            on_click=transfer_from_part_6,
+            args=(8,),
+        )
+        target_9.button(
+            "→ In Teil 9 übernehmen",
+            use_container_width=True,
+            on_click=transfer_from_part_6,
+            args=(9,),
+        )
     with st.expander("Formelweg"):
         st.latex(r"I_B=\frac{P}{\sqrt{3}\,U\,\cos\varphi\,\eta}\quad\quad I_{r,min}=\frac{I_B}{\prod f_i}\quad\quad I_z=I_r\prod f_i")
         st.write("Prüfkette: Iᴮ ≤ Iⁿ ≤ Iᶻ · Auslöseregel · zulässiger Spannungsfall.")
@@ -85,27 +162,6 @@ elif page == "6 · Leitungsdimensionierung":
 elif page == "7 · Schutzorgane":
     st.subheader("Schutzorgan prüfen")
     st.write("Prüfe, ob der Bemessungsstrom des Schutzorgans zur Leitung passt und die Überlastabschaltung sichergestellt ist.")
-
-    transfer = st.session_state.get("dimensioning_transfer")
-    if transfer:
-        transfer_col, note_col = st.columns([1, 2])
-        if transfer_col.button(
-            "Daten aus Teil 6 übernehmen",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state["protection_ib"] = float(transfer["operating_current_a"])
-            st.session_state["protection_iz"] = float(transfer["ampacity_a"])
-            st.session_state["protection_nominal"] = int(transfer["rated_current_a"])
-            st.session_state["protection_from_section"] = float(transfer["section_mm2"])
-            st.rerun()
-        note_col.info(
-            f"Verfügbar aus Teil 6: Iᴮ = {transfer['operating_current_a']:.2f} A, "
-            f"Iᶻ = {transfer['ampacity_a']:.2f} A, Iⁿ = {transfer['rated_current_a']} A, "
-            f"A = {transfer['section_mm2']:g} mm²"
-        )
-    else:
-        st.info("Berechne zuerst in Teil 6 eine gültige Leitung. Danach können die Werte hier übernommen werden.")
 
     with st.container(border=True):
         c1, c2, c3 = st.columns(3)
@@ -167,11 +223,13 @@ elif page == "7 · Schutzorgane":
 
 elif page == "8 · Widerstände & Impedanzen":
     st.subheader("Leiterwiderstand und Impedanz")
+    if st.session_state.get("resistance_from_part6"):
+        st.success("Die Leitungsdaten wurden aus Teil 6 übernommen.")
     c1,c2,c3,c4 = st.columns(4)
-    material = c1.selectbox("Material", list(CONDUCTIVITY))
-    length = c2.number_input("Leiterlänge ℓ [m]", .01, 1e7, 100.0)
-    section = c3.number_input("Querschnitt A [mm²]", .01, 10000.0, 16.0)
-    temp = c4.number_input("Temperatur ϑ [°C]", -100.0, 500.0, 70.0)
+    material = c1.selectbox("Material", list(CONDUCTIVITY), key="resistance_material")
+    length = c2.number_input("Leiterlänge ℓ [m]", .01, 1e7, 100.0, key="resistance_length")
+    section = c3.number_input("Querschnitt A [mm²]", .01, 10000.0, 16.0, key="resistance_section")
+    temp = c4.number_input("Temperatur ϑ [°C]", -100.0, 500.0, 70.0, key="resistance_temperature")
     r20 = conductor_resistance(length, section, material, 20)
     rt = conductor_resistance(length, section, material, temp)
     m=st.columns(4); m[0].metric("R₂₀",f"{r20:.5f} Ω"); m[1].metric(f"R bei {temp:g} °C",f"{rt:.5f} Ω"); m[2].metric("R′",f"{rt/length*1000:.4f} Ω/km"); m[3].metric("Temperaturfaktor",f"{rt/r20:.4f}")
@@ -180,15 +238,17 @@ elif page == "8 · Widerstände & Impedanzen":
 
 else:
     st.subheader("Spannungsfall und Leitungsverlust")
+    if st.session_state.get("drop_from_part6"):
+        st.success("Die Leitungs- und Lastdaten wurden aus Teil 6 übernommen.")
     c1,c2,c3 = st.columns(3)
-    current = c1.number_input("Leiterstrom I [A]", .01, 100000.0, 32.0)
-    length = c1.number_input("Einfache Länge ℓ [m]", .01, 1e7, 50.0)
-    section = c2.number_input("Querschnitt A [mm²]", .01, 10000.0, 10.0)
-    material = c2.selectbox("Material", ["Kupfer","Aluminium"])
-    network = c3.selectbox("Netz", ["Drehstrom 400 V","Wechselstrom 230 V"])
-    cosphi = c3.slider("cos φ", .1, 1.0, .9, .01)
-    temp = c3.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0)
-    line_type = st.selectbox("Leitungstyp", list(REACTANCE), format_func=lambda x:f"{x} · X′ = {REACTANCE[x]:.2f} Ω/km")
+    current = c1.number_input("Leiterstrom I [A]", .01, 100000.0, 32.0, key="drop_current")
+    length = c1.number_input("Einfache Länge ℓ [m]", .01, 1e7, 50.0, key="drop_length")
+    section = c2.number_input("Querschnitt A [mm²]", .01, 10000.0, 10.0, key="drop_section")
+    material = c2.selectbox("Material", ["Kupfer","Aluminium"], key="drop_material")
+    network = c3.selectbox("Netz", ["Drehstrom 400 V","Wechselstrom 230 V"], key="drop_network")
+    cosphi = c3.slider("cos φ", .1, 1.0, .9, .01, key="drop_power_factor")
+    temp = c3.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0, key="drop_temperature")
+    line_type = st.selectbox("Leitungstyp", list(REACTANCE), format_func=lambda x:f"{x} · X′ = {REACTANCE[x]:.2f} Ω/km", key="drop_line_type")
     phases = 3 if network.startswith("Dreh") else 1; voltage = 400 if phases==3 else 230
     drop,pct = voltage_drop(current,length,section,voltage,cosphi,phases,material,temp,REACTANCE[line_type])
     rpkm = conductor_resistance(1000,section,material,temp); loss=(3 if phases==3 else 2)*current**2*rpkm*length/1000
