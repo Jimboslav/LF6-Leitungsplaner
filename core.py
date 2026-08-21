@@ -81,6 +81,36 @@ class DimensioningResult:
         return self.section_mm2 is not None and self.overload_ok and self.trip_ok and self.voltage_ok
 
 
+@dataclass(frozen=True)
+class ProtectionResult:
+    trip_current_a: float
+    max_permitted_trip_current_a: float
+    rated_current_ok: bool
+    trip_rule_ok: bool
+
+    @property
+    def successful(self) -> bool:
+        return self.rated_current_ok and self.trip_rule_ok
+
+
+def check_overload_protection(operating_current_a: float, rated_current_a: float,
+                              ampacity_a: float, device: str) -> ProtectionResult:
+    """Prueft Bemessungsstrom- und Ausloeseregel nach Abschnitt 6.9/7."""
+    if min(operating_current_a, rated_current_a, ampacity_a) <= 0:
+        raise ValueError("Stroeme und Belastbarkeit muessen groesser als null sein.")
+    if device not in {"LS", "gG"}:
+        raise ValueError("Unbekanntes Schutzorgan.")
+    trip_factor = 1.45 if device == "LS" else 1.6
+    trip_current = rated_current_a * trip_factor
+    max_trip_current = 1.45 * ampacity_a
+    return ProtectionResult(
+        trip_current_a=trip_current,
+        max_permitted_trip_current_a=max_trip_current,
+        rated_current_ok=operating_current_a <= rated_current_a <= ampacity_a,
+        trip_rule_ok=trip_current <= max_trip_current,
+    )
+
+
 def dimension_line(*, power_kw: float, voltage: float, power_factor: float, phases: int,
                    efficiency: float, simultaneity: float, installation: str, loaded_conductors: int,
                    correction_factor: float, length_m: float, material: str, temperature_c: float,
