@@ -44,6 +44,10 @@ class CoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             check_overload_protection(10, 16, 20, "unknown")
 
+    def test_high_current_standard_fuse_is_available(self):
+        from core import STANDARD_FUSES
+        self.assertIn(400, STANDARD_FUSES)
+
 
 if __name__ == "__main__":
     unittest.main()
