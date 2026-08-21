@@ -1,7 +1,8 @@
 import math
 import unittest
 
-from core import conductor_resistance, dimension_line, mean_power_factor, operating_current, voltage_drop
+from core import (check_overload_protection, conductor_resistance, dimension_line,
+                  mean_power_factor, operating_current, voltage_drop)
 
 
 class CoreTests(unittest.TestCase):
@@ -28,6 +29,24 @@ class CoreTests(unittest.TestCase):
     def test_mean_power_factor(self):
         pf, _, _ = mean_power_factor([(10, .8), (10, 1.0)])
         self.assertTrue(.8 < pf < 1)
+
+    def test_ls_protection_valid(self):
+        result = check_overload_protection(24, 25, 32, "LS")
+        self.assertTrue(result.successful)
+        self.assertAlmostEqual(result.trip_current_a, 36.25)
+
+    def test_gg_trip_rule_can_fail(self):
+        result = check_overload_protection(24, 25, 26, "gG")
+        self.assertTrue(result.rated_current_ok)
+        self.assertFalse(result.trip_rule_ok)
+
+    def test_protection_rejects_unknown_device(self):
+        with self.assertRaises(ValueError):
+            check_overload_protection(10, 16, 20, "unknown")
+
+    def test_high_current_standard_fuse_is_available(self):
+        from core import STANDARD_FUSES
+        self.assertIn(400, STANDARD_FUSES)
 
 
 if __name__ == "__main__":

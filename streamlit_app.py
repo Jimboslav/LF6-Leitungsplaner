@@ -1,7 +1,7 @@
 import streamlit as st
 
-from core import (ALPHA, CONDUCTIVITY, REACTANCE, conductor_resistance, dimension_line,
-                  mean_power_factor, operating_current, voltage_drop)
+from core import (ALPHA, CONDUCTIVITY, REACTANCE, STANDARD_FUSES, check_overload_protection,
+                  conductor_resistance, dimension_line, mean_power_factor, voltage_drop)
 
 st.set_page_config(page_title="LF6 Leitungsplaner", page_icon="⚡", layout="wide")
 
@@ -65,6 +65,12 @@ elif page == "6 · Leitungsdimensionierung":
           correction_factor=correction, length_m=length, material=material, temperature_c=temp,
           max_drop_percent=max_drop, reactance_ohm_km=REACTANCE[reactance], trip_factor=1.45)
         if result.successful:
+            st.session_state["dimensioning_transfer"] = {
+                "operating_current_a": result.current_a,
+                "ampacity_a": result.corrected_ampacity_a,
+                "rated_current_a": result.fuse_a,
+                "section_mm2": result.section_mm2,
+            }
             st.markdown('<div class="ok"><b>Dimensionierung erfolgreich:</b> Belastbarkeit, Schutz und Spannungsfall sind rechnerisch erfüllt.</div>', unsafe_allow_html=True)
             m=st.columns(5)
             for col,label,value in zip(m,["Betriebsstrom Iᴮ","Mindest-Referenz Iʳ","Querschnitt","Korrigiertes Iᶻ","Spannungsfall"],
@@ -78,16 +84,84 @@ elif page == "6 · Leitungsdimensionierung":
 
 elif page == "7 · Schutzorgane":
     st.subheader("Schutzorgan prüfen")
-    c1,c2,c3 = st.columns(3)
-    ib = c1.number_input("Betriebsstrom Iᴮ [A]", 0.01, 10000.0, 24.0)
-    iz = c2.number_input("Zulässige Belastbarkeit Iᶻ [A]", 0.01, 10000.0, 32.0)
-    nominal = c3.selectbox("Bemessungsstrom Iⁿ [A]", [6,10,13,16,20,25,32,35,40,50,63,80,100,125,160])
-    kind = st.radio("Schutzorgan", ["Leitungsschutzschalter (I₂ = 1,45 · Iⁿ)", "gG-Sicherung (I₂ = 1,6 · Iⁿ)"], horizontal=True)
-    i2 = nominal * (1.45 if kind.startswith("Leitung") else 1.6)
-    rule1 = ib <= nominal <= iz; rule2 = i2 <= 1.45*iz
-    a,b,c = st.columns(3); a.metric("Bemessungsstromregel", "erfüllt" if rule1 else "nicht erfüllt"); b.metric("Auslösestrom I₂",f"{i2:.2f} A"); c.metric("Auslöseregel", "erfüllt" if rule2 else "nicht erfüllt")
-    st.success("Schutz rechnerisch passend.") if rule1 and rule2 else st.warning("Schutzorgan oder Leitungsquerschnitt anpassen.")
-    st.latex(r"I_B\leq I_n\leq I_z\qquad I_2\leq1{,}45\cdot I_z")
+    st.write("Prüfe, ob der Bemessungsstrom des Schutzorgans zur Leitung passt und die Überlastabschaltung sichergestellt ist.")
+
+    transfer = st.session_state.get("dimensioning_transfer")
+    if transfer:
+        transfer_col, note_col = st.columns([1, 2])
+        if transfer_col.button(
+            "Daten aus Teil 6 übernehmen",
+            type="primary",
+            use_container_width=True,
+        ):
+            st.session_state["protection_ib"] = float(transfer["operating_current_a"])
+            st.session_state["protection_iz"] = float(transfer["ampacity_a"])
+            st.session_state["protection_nominal"] = int(transfer["rated_current_a"])
+            st.session_state["protection_from_section"] = float(transfer["section_mm2"])
+            st.rerun()
+        note_col.info(
+            f"Verfügbar aus Teil 6: Iᴮ = {transfer['operating_current_a']:.2f} A, "
+            f"Iᶻ = {transfer['ampacity_a']:.2f} A, Iⁿ = {transfer['rated_current_a']} A, "
+            f"A = {transfer['section_mm2']:g} mm²"
+        )
+    else:
+        st.info("Berechne zuerst in Teil 6 eine gültige Leitung. Danach können die Werte hier übernommen werden.")
+
+    with st.container(border=True):
+        c1, c2, c3 = st.columns(3)
+        ib = c1.number_input(
+            "Betriebsstrom Iᴮ [A]", 0.01, 10000.0, 24.0, key="protection_ib"
+        )
+        iz = c2.number_input(
+            "Zulässige Belastbarkeit Iᶻ [A]", 0.01, 10000.0, 32.0, key="protection_iz"
+        )
+        nominal = c3.selectbox(
+            "Bemessungsstrom Iⁿ [A]",
+            STANDARD_FUSES,
+            key="protection_nominal",
+        )
+        kind = st.radio(
+            "Schutzorgan",
+            ["Leitungsschutzschalter", "gG-Sicherung"],
+            horizontal=True,
+        )
+
+    result = check_overload_protection(
+        operating_current_a=ib,
+        rated_current_a=nominal,
+        ampacity_a=iz,
+        device="LS" if kind == "Leitungsschutzschalter" else "gG",
+    )
+
+    a, b, c = st.columns(3)
+    a.metric("Bemessungsstromregel", "Erfüllt" if result.rated_current_ok else "Nicht erfüllt")
+    b.metric("Auslösestrom I₂", f"{result.trip_current_a:.2f} A")
+    c.metric("Auslöseregel", "Erfüllt" if result.trip_rule_ok else "Nicht erfüllt")
+
+    if result.successful:
+        st.success("Das Schutzorgan ist rechnerisch passend.")
+    else:
+        st.warning("Schutzorgan oder Leitungsquerschnitt anpassen.")
+
+    st.markdown(
+        """
+        <div class="formula">
+          <strong>Prüfbedingungen</strong><br>
+          I<sub>B</sub> ≤ I<sub>n</sub> ≤ I<sub>z</sub>
+          &nbsp;&nbsp;und&nbsp;&nbsp;
+          I<sub>2</sub> ≤ 1,45 · I<sub>z</sub>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        f"Aktuell: {ib:.2f} A ≤ {nominal:.2f} A ≤ {iz:.2f} A · "
+        f"{result.trip_current_a:.2f} A ≤ {result.max_permitted_trip_current_a:.2f} A"
+    )
+    if "protection_from_section" in st.session_state:
+        st.caption(
+            f"Übernommen aus der Dimensionierung mit {st.session_state['protection_from_section']:g} mm²."
+        )
     with st.expander("Kurzüberblick Schutzorgane"):
         st.markdown("**LS-Schalter:** typisch 6/10 kA · **NEOZED/DIAZED:** typisch 50 kA AC · **NH-System:** typisch bis 120 kA AC. Selektivität ist herstellerbezogen zu prüfen; für zwei gG-Sicherungen gilt als Richtwert ein Nennstromverhältnis von 1 : 1,6.")
 
