@@ -27,6 +27,38 @@ PAGES = [
     "9 · Spannungsfall",
 ]
 
+HELP = {
+    "power": "Elektrische Wirkleistung des Verbrauchers in Kilowatt. Bei einem Motor ist damit in der Regel die mechanische Nennleistung gemeint; der Wirkungsgrad wird separat berücksichtigt.",
+    "network": "Drehstrom wird typischerweise mit 400 V zwischen den Außenleitern betrieben, Wechselstrom mit 230 V zwischen Außenleiter und Neutralleiter.",
+    "voltage": "Nennspannung am Anfang der Leitung. Für Standard-Niederspannungsnetze sind 230 V bei Wechselstrom und 400 V bei Drehstrom üblich.",
+    "power_factor": "cos φ beschreibt den Anteil der Wirkleistung an der Scheinleistung. Ohmsche Verbraucher liegen nahe 1, Motoren häufig zwischen 0,8 und 0,9.",
+    "efficiency": "Verhältnis von abgegebener zu aufgenommener Leistung. Ein Wert von 0,95 entspricht 95 % Wirkungsgrad.",
+    "simultaneity": "Berücksichtigt, dass nicht alle angeschlossenen Verbraucher gleichzeitig mit voller Leistung laufen. 1,0 bedeutet vollständige Gleichzeitigkeit.",
+    "installation": "A1: Einzeladern im Rohr in wärmegedämmter Wand. A2: mehradrige Leitung im Rohr in wärmegedämmter Wand. B1: Einzeladern im Rohr auf/in der Wand. B2: mehradrige Leitung im Rohr auf/in der Wand. C: direkt auf oder in Wand/Decke verlegt. Bei mehreren Abschnitten gilt die thermisch ungünstigste Verlegeart.",
+    "loaded": "Anzahl der Leiter, die im Normalbetrieb Strom führen und Wärme erzeugen. Der Schutzleiter zählt nicht; der Neutralleiter kann je nach Last mitgezählt werden.",
+    "length": "Einfache Entfernung vom Speisepunkt bis zum Verbraucher. Hin- und Rückleiter werden in den Wechselstromformeln automatisch berücksichtigt.",
+    "material": "Kupfer besitzt eine höhere Leitfähigkeit als Aluminium. Aluminium benötigt für denselben Widerstand meist einen größeren Querschnitt.",
+    "temperature": "Erwartete Leitertemperatur im Betrieb. Mit steigender Temperatur wächst der Leiterwiderstand und damit der Spannungsfall.",
+    "correction": "Produkt aller zutreffenden Faktoren, zum Beispiel Temperatur fT, Häufung fH, Vieladrigkeit fV und Oberschwingungen fOS. Faktoren unter 1 verringern die zulässige Belastbarkeit.",
+    "max_drop": "Maximal erlaubter relativer Spannungsfall. Typische Planungswerte: 3 % für Beleuchtung, 5 % für andere Verbraucher und 0,5 % im Bereich bestimmter Hauptleitungen.",
+    "reactance": "Induktiver Blindwiderstandsbelag X′ der Leitungsanordnung. Er beeinflusst den Spannungsfall besonders bei großen Querschnitten und kleinen Leistungsfaktoren.",
+    "operating_current": "Tatsächlich zu erwartender Leiterstrom Iᴮ des Verbrauchers oder Stromkreises.",
+    "ampacity": "Unter den realen Verlegebedingungen zulässiger Dauerstrom Iᶻ der ausgewählten Leitung nach Anwendung aller Korrekturfaktoren.",
+    "rated_current": "Nennstrom Iⁿ des Schutzorgans. Für den Überlastschutz muss Iᴮ ≤ Iⁿ ≤ Iᶻ gelten.",
+    "protective_device": "Beim Leitungsschutzschalter wird für die Auslöseregel I₂ = 1,45 · Iⁿ verwendet, bei einer gG-Sicherung I₂ = 1,6 · Iⁿ.",
+    "resistance_length": "Tatsächliche Länge des betrachteten einzelnen Leiters. Anders als beim Spannungsfall wird hier kein automatischer Faktor für Hin- und Rückleiter verwendet.",
+    "section": "Nennquerschnitt eines einzelnen Leiters in Quadratmillimetern. Ein größerer Querschnitt reduziert Widerstand, Spannungsfall und Verluste.",
+    "drop_current": "Strom in jedem belasteten Außenleiter. Bei symmetrischem Drehstrom ist er in allen drei Außenleitern gleich.",
+    "line_type": "Die geometrische Anordnung der Leiter bestimmt den induktiven Reaktanzbelag X′. Mehrleiterkabel haben meist kleinere Werte als Freileitungen.",
+    "load_count": "Anzahl unterschiedlicher Lastgruppen, aus denen ein gemeinsamer mittlerer Leistungsfaktor berechnet werden soll.",
+    "load_power": "Wirkleistung dieser einzelnen Lastgruppe. Sie dient als Gewichtung bei der Bildung des mittleren Leistungsfaktors.",
+    "load_pf": "Leistungsfaktor der einzelnen Lastgruppe. Stark unterschiedliche Werte sollten für genaue Spannungsfallberechnungen abschnittsweise behandelt werden.",
+    "calculate": "Startet die vollständige Prüfkette: Betriebsstrom, erforderliche Referenzbelastbarkeit, Querschnitt, Schutzorgan und Spannungsfall.",
+    "transfer_7": "Übernimmt Iᴮ, Iᶻ, den vorgeschlagenen Sicherungsnennstrom und den Querschnitt in die Schutzprüfung und öffnet Teil 7.",
+    "transfer_8": "Übernimmt Material, Leitungslänge, Querschnitt und Leitertemperatur in die Widerstandsberechnung und öffnet Teil 8.",
+    "transfer_9": "Übernimmt Strom, Länge, Querschnitt, Material, Netzart, cos φ, Temperatur und Leitungstyp in die Spannungsfallberechnung und öffnet Teil 9.",
+}
+
 
 def transfer_from_part_6(target: int) -> None:
     """Befuellt den Zielteil und wechselt direkt dorthin."""
@@ -63,7 +95,8 @@ def transfer_from_part_6(target: int) -> None:
 with st.sidebar:
     st.header("Arbeitsbereich")
     page = st.radio(
-        "Navigation", PAGES, label_visibility="collapsed", key="active_page"
+        "Navigation", PAGES, label_visibility="collapsed", key="active_page",
+        help="Wechselt zwischen dem geführten Planungsablauf und den einzelnen Rechenwerkzeugen.",
     )
     st.divider()
     st.caption("Fachliche Basis: Formelsammlung LF6, Version 1.0.1. Ergebnisse sind rechnerische Planungshilfen und ersetzen keine Normenprüfung.")
@@ -83,24 +116,24 @@ elif page == "6 · Leitungsdimensionierung":
     with st.form("dimensioning"):
         a,b,c = st.columns(3)
         with a:
-            power = st.number_input("Wirkleistung P [kW]", .1, 10000.0, 15.0)
-            phases_label = st.selectbox("Netz", ["Drehstrom", "Wechselstrom"])
-            voltage = st.number_input("Nennspannung U [V]", 1.0, 100000.0, 400.0 if phases_label == "Drehstrom" else 230.0)
-            cosphi = st.slider("Leistungsfaktor cos φ", .1, 1.0, .9, .01)
+            power = st.number_input("Wirkleistung P [kW]", .1, 10000.0, 15.0, help=HELP["power"])
+            phases_label = st.selectbox("Netz", ["Drehstrom", "Wechselstrom"], help=HELP["network"])
+            voltage = st.number_input("Nennspannung U [V]", 1.0, 100000.0, 400.0 if phases_label == "Drehstrom" else 230.0, help=HELP["voltage"])
+            cosphi = st.slider("Leistungsfaktor cos φ", .1, 1.0, .9, .01, help=HELP["power_factor"])
         with b:
-            efficiency = st.slider("Wirkungsgrad η", .1, 1.0, .95, .01)
-            simultaneity = st.slider("Gleichzeitigkeitsfaktor g", .05, 1.0, 1.0, .05)
-            installation = st.selectbox("Referenz-Verlegeart", ["A1","A2","B1","B2","C"])
-            loaded = st.selectbox("Belastete Adern", [3,2])
+            efficiency = st.slider("Wirkungsgrad η", .1, 1.0, .95, .01, help=HELP["efficiency"])
+            simultaneity = st.slider("Gleichzeitigkeitsfaktor g", .05, 1.0, 1.0, .05, help=HELP["simultaneity"])
+            installation = st.selectbox("Referenz-Verlegeart", ["A1","A2","B1","B2","C"], help=HELP["installation"])
+            loaded = st.selectbox("Belastete Adern", [3,2], help=HELP["loaded"])
         with c:
-            length = st.number_input("Einfache Leitungslänge [m]", .1, 100000.0, 35.0)
-            material = st.selectbox("Leitermaterial", ["Kupfer","Aluminium"])
-            temp = st.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0)
-            correction = st.number_input("Gesamtkorrekturfaktor f", .01, 2.0, .80, .01, help="Produkt aus Temperatur-, Häufungs-, Vieladrigkeits- und Oberwellenfaktor.")
+            length = st.number_input("Einfache Leitungslänge [m]", .1, 100000.0, 35.0, help=HELP["length"])
+            material = st.selectbox("Leitermaterial", ["Kupfer","Aluminium"], help=HELP["material"])
+            temp = st.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0, help=HELP["temperature"])
+            correction = st.number_input("Gesamtkorrekturfaktor f", .01, 2.0, .80, .01, help=HELP["correction"])
         d,e = st.columns(2)
-        max_drop = d.selectbox("Zulässiger Spannungsfall", [3.0,5.0,.5], format_func=lambda x:f"{x:g} %")
-        reactance = e.selectbox("Leitungstyp / Reaktanz", list(REACTANCE), format_func=lambda x:f"{x} ({REACTANCE[x]:.2f} Ω/km)")
-        run = st.form_submit_button("Leitung berechnen", type="primary", use_container_width=True)
+        max_drop = d.selectbox("Zulässiger Spannungsfall", [3.0,5.0,.5], format_func=lambda x:f"{x:g} %", help=HELP["max_drop"])
+        reactance = e.selectbox("Leitungstyp / Reaktanz", list(REACTANCE), format_func=lambda x:f"{x} ({REACTANCE[x]:.2f} Ω/km)", help=HELP["reactance"])
+        run = st.form_submit_button("Leitung berechnen", type="primary", use_container_width=True, help=HELP["calculate"])
     if run:
         result = dimension_line(power_kw=power, voltage=voltage, power_factor=cosphi, phases=3 if phases_label=="Drehstrom" else 1,
           efficiency=efficiency, simultaneity=simultaneity, installation=installation, loaded_conductors=loaded,
@@ -142,18 +175,21 @@ elif page == "6 · Leitungsdimensionierung":
             use_container_width=True,
             on_click=transfer_from_part_6,
             args=(7,),
+            help=HELP["transfer_7"],
         )
         target_8.button(
             "→ In Teil 8 übernehmen",
             use_container_width=True,
             on_click=transfer_from_part_6,
             args=(8,),
+            help=HELP["transfer_8"],
         )
         target_9.button(
             "→ In Teil 9 übernehmen",
             use_container_width=True,
             on_click=transfer_from_part_6,
             args=(9,),
+            help=HELP["transfer_9"],
         )
     with st.expander("Formelweg"):
         st.latex(r"I_B=\frac{P}{\sqrt{3}\,U\,\cos\varphi\,\eta}\quad\quad I_{r,min}=\frac{I_B}{\prod f_i}\quad\quad I_z=I_r\prod f_i")
@@ -166,20 +202,22 @@ elif page == "7 · Schutzorgane":
     with st.container(border=True):
         c1, c2, c3 = st.columns(3)
         ib = c1.number_input(
-            "Betriebsstrom Iᴮ [A]", 0.01, 10000.0, 24.0, key="protection_ib"
+            "Betriebsstrom Iᴮ [A]", 0.01, 10000.0, 24.0, key="protection_ib", help=HELP["operating_current"]
         )
         iz = c2.number_input(
-            "Zulässige Belastbarkeit Iᶻ [A]", 0.01, 10000.0, 32.0, key="protection_iz"
+            "Zulässige Belastbarkeit Iᶻ [A]", 0.01, 10000.0, 32.0, key="protection_iz", help=HELP["ampacity"]
         )
         nominal = c3.selectbox(
             "Bemessungsstrom Iⁿ [A]",
             STANDARD_FUSES,
             key="protection_nominal",
+            help=HELP["rated_current"],
         )
         kind = st.radio(
             "Schutzorgan",
             ["Leitungsschutzschalter", "gG-Sicherung"],
             horizontal=True,
+            help=HELP["protective_device"],
         )
 
     result = check_overload_protection(
@@ -226,10 +264,10 @@ elif page == "8 · Widerstände & Impedanzen":
     if st.session_state.get("resistance_from_part6"):
         st.success("Die Leitungsdaten wurden aus Teil 6 übernommen.")
     c1,c2,c3,c4 = st.columns(4)
-    material = c1.selectbox("Material", list(CONDUCTIVITY), key="resistance_material")
-    length = c2.number_input("Leiterlänge ℓ [m]", .01, 1e7, 100.0, key="resistance_length")
-    section = c3.number_input("Querschnitt A [mm²]", .01, 10000.0, 16.0, key="resistance_section")
-    temp = c4.number_input("Temperatur ϑ [°C]", -100.0, 500.0, 70.0, key="resistance_temperature")
+    material = c1.selectbox("Material", list(CONDUCTIVITY), key="resistance_material", help=HELP["material"])
+    length = c2.number_input("Leiterlänge ℓ [m]", .01, 1e7, 100.0, key="resistance_length", help=HELP["resistance_length"])
+    section = c3.number_input("Querschnitt A [mm²]", .01, 10000.0, 16.0, key="resistance_section", help=HELP["section"])
+    temp = c4.number_input("Temperatur ϑ [°C]", -100.0, 500.0, 70.0, key="resistance_temperature", help=HELP["temperature"])
     r20 = conductor_resistance(length, section, material, 20)
     rt = conductor_resistance(length, section, material, temp)
     m=st.columns(4); m[0].metric("R₂₀",f"{r20:.5f} Ω"); m[1].metric(f"R bei {temp:g} °C",f"{rt:.5f} Ω"); m[2].metric("R′",f"{rt/length*1000:.4f} Ω/km"); m[3].metric("Temperaturfaktor",f"{rt/r20:.4f}")
@@ -241,14 +279,14 @@ else:
     if st.session_state.get("drop_from_part6"):
         st.success("Die Leitungs- und Lastdaten wurden aus Teil 6 übernommen.")
     c1,c2,c3 = st.columns(3)
-    current = c1.number_input("Leiterstrom I [A]", .01, 100000.0, 32.0, key="drop_current")
-    length = c1.number_input("Einfache Länge ℓ [m]", .01, 1e7, 50.0, key="drop_length")
-    section = c2.number_input("Querschnitt A [mm²]", .01, 10000.0, 10.0, key="drop_section")
-    material = c2.selectbox("Material", ["Kupfer","Aluminium"], key="drop_material")
-    network = c3.selectbox("Netz", ["Drehstrom 400 V","Wechselstrom 230 V"], key="drop_network")
-    cosphi = c3.slider("cos φ", .1, 1.0, .9, .01, key="drop_power_factor")
-    temp = c3.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0, key="drop_temperature")
-    line_type = st.selectbox("Leitungstyp", list(REACTANCE), format_func=lambda x:f"{x} · X′ = {REACTANCE[x]:.2f} Ω/km", key="drop_line_type")
+    current = c1.number_input("Leiterstrom I [A]", .01, 100000.0, 32.0, key="drop_current", help=HELP["drop_current"])
+    length = c1.number_input("Einfache Länge ℓ [m]", .01, 1e7, 50.0, key="drop_length", help=HELP["length"])
+    section = c2.number_input("Querschnitt A [mm²]", .01, 10000.0, 10.0, key="drop_section", help=HELP["section"])
+    material = c2.selectbox("Material", ["Kupfer","Aluminium"], key="drop_material", help=HELP["material"])
+    network = c3.selectbox("Netz", ["Drehstrom 400 V","Wechselstrom 230 V"], key="drop_network", help=HELP["network"])
+    cosphi = c3.slider("cos φ", .1, 1.0, .9, .01, key="drop_power_factor", help=HELP["power_factor"])
+    temp = c3.number_input("Leitertemperatur [°C]", -20.0, 200.0, 70.0, key="drop_temperature", help=HELP["temperature"])
+    line_type = st.selectbox("Leitungstyp", list(REACTANCE), format_func=lambda x:f"{x} · X′ = {REACTANCE[x]:.2f} Ω/km", key="drop_line_type", help=HELP["line_type"])
     phases = 3 if network.startswith("Dreh") else 1; voltage = 400 if phases==3 else 230
     drop,pct = voltage_drop(current,length,section,voltage,cosphi,phases,material,temp,REACTANCE[line_type])
     rpkm = conductor_resistance(1000,section,material,temp); loss=(3 if phases==3 else 2)*current**2*rpkm*length/1000
@@ -258,9 +296,9 @@ else:
     else: st.error("Der Spannungsfall überschreitet 5 %. Querschnitt oder Leitungslänge anpassen.")
     st.latex(r"\Delta U=\sqrt{3}\,\ell I(R'\cos\varphi+X'\sin\varphi)\quad\text{(Drehstrom)}")
     with st.expander("Mittleren Leistungsfaktor mehrerer Lasten berechnen"):
-        count=st.number_input("Anzahl Lasten",1,6,2)
+        count=st.number_input("Anzahl Lasten",1,6,2, help=HELP["load_count"])
         loads=[]
         for i in range(count):
-            x,y=st.columns(2); loads.append((x.number_input(f"P{i+1} [kW]",.01,1e6,10.0,key=f"p{i}"),y.slider(f"cos φ{i+1}",.1,1.0,.9,.01,key=f"pf{i}")))
+            x,y=st.columns(2); loads.append((x.number_input(f"P{i+1} [kW]",.01,1e6,10.0,key=f"p{i}",help=HELP["load_power"]),y.slider(f"cos φ{i+1}",.1,1.0,.9,.01,key=f"pf{i}",help=HELP["load_pf"])))
         pf,sf,tf=mean_power_factor(loads); st.write(f"**cos φₘ = {pf:.3f}** · sin φₘ = {sf:.3f} · tan φₘ = {tf:.3f}")
 
