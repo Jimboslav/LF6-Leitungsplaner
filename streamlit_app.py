@@ -34,8 +34,9 @@ HELP = {
     "power_factor": "cos φ beschreibt den Anteil der Wirkleistung an der Scheinleistung. Ohmsche Verbraucher liegen nahe 1, Motoren häufig zwischen 0,8 und 0,9.",
     "efficiency": "Verhältnis von abgegebener zu aufgenommener Leistung. Ein Wert von 0,95 entspricht 95 % Wirkungsgrad.",
     "simultaneity": "Berücksichtigt, dass nicht alle angeschlossenen Verbraucher gleichzeitig mit voller Leistung laufen. 1,0 bedeutet vollständige Gleichzeitigkeit.",
-    "installation": "A1: Einzeladern im Rohr in wärmegedämmter Wand. A2: mehradrige Leitung im Rohr in wärmegedämmter Wand. B1: Einzeladern im Rohr auf/in der Wand. B2: mehradrige Leitung im Rohr auf/in der Wand. C: direkt auf oder in Wand/Decke verlegt. Bei mehreren Abschnitten gilt die thermisch ungünstigste Verlegeart.",
+    "installation": "A1: Einzeladern im Rohr in wärmegedämmter Wand. A2: mehradrige Leitung im Rohr in wärmegedämmter Wand. B1: Einzeladern im Rohr auf/in der Wand. B2: mehradrige Leitung im Rohr auf/in der Wand. C: direkt auf/in Wand oder Decke. D: im Erdreich bzw. Rohr/Schacht. E: mehradriges Kabel frei in Luft. F: einadrige Kabel mit Berührung. G: einadrige Kabel mit Abstand. Bei mehreren Abschnitten gilt die thermisch ungünstigste Verlegeart.",
     "loaded": "Anzahl der Leiter, die im Normalbetrieb Strom führen und Wärme erzeugen. Der Schutzleiter zählt nicht; der Neutralleiter kann je nach Last mitgezählt werden.",
+    "arrangement": "v/h bedeutet vertikale oder horizontale Anordnung. Dreieck bezeichnet drei sich berührende Einleiterkabel in Dreiecksformation. Bei G liegen die Einleiterkabel mit Abstand horizontal oder vertikal.",
     "length": "Einfache Entfernung vom Speisepunkt bis zum Verbraucher. Hin- und Rückleiter werden in den Wechselstromformeln automatisch berücksichtigt.",
     "material": "Kupfer besitzt eine höhere Leitfähigkeit als Aluminium. Aluminium benötigt für denselben Widerstand meist einen größeren Querschnitt.",
     "temperature": "Erwartete Leitertemperatur im Betrieb. Mit steigender Temperatur wächst der Leiterwiderstand und damit der Spannungsfall.",
@@ -123,8 +124,21 @@ elif page == "6 · Leitungsdimensionierung":
         with b:
             efficiency = st.slider("Wirkungsgrad η", .1, 1.0, .95, .01, help=HELP["efficiency"])
             simultaneity = st.slider("Gleichzeitigkeitsfaktor g", .05, 1.0, 1.0, .05, help=HELP["simultaneity"])
-            installation = st.selectbox("Referenz-Verlegeart", ["A1","A2","B1","B2","C"], help=HELP["installation"])
-            loaded = st.selectbox("Belastete Adern", [3,2], help=HELP["loaded"])
+            installation = st.selectbox("Referenz-Verlegeart", ["A1","A2","B1","B2","C","D","E","F","G"], help=HELP["installation"])
+            if installation == "F":
+                loaded = st.selectbox(
+                    "Leiteranordnung",
+                    ["3 Dreieck", "3 v/h", "2 v/h"],
+                    help=HELP["arrangement"],
+                )
+            elif installation == "G":
+                loaded = st.selectbox(
+                    "Leiteranordnung",
+                    ["3 horizontal", "3 vertikal"],
+                    help=HELP["arrangement"],
+                )
+            else:
+                loaded = st.selectbox("Belastete Adern", [3,2], help=HELP["loaded"])
         with c:
             length = st.number_input("Einfache Leitungslänge [m]", .1, 100000.0, 35.0, help=HELP["length"])
             material = st.selectbox("Leitermaterial", ["Kupfer","Aluminium"], help=HELP["material"])

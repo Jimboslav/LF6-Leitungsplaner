@@ -20,6 +20,21 @@ AMPACITY = {
            3: [15, 20, 27, 34, 46, 62, 80, 99, 118, 149, 179, 206, 225, 255, 297, 339]},
     "C": {2: [19.5, 27, 36, 46, 63, 85, 112, 138, 168, 213, 258, 299, 344, 392, 461, 530],
           3: [17.5, 24, 32, 41, 57, 76, 96, 119, 144, 184, 223, 259, 299, 341, 403, 464]},
+    "D": {2: [22, 29, 37, 46, 60, 78, 99, 119, 140, 173, 204, 231, 261, 292, 336, 379],
+          3: [18, 24, 30, 38, 50, 64, 82, 98, 116, 143, 169, 192, 217, 243, 280, 316]},
+    "E": {2: [22, 30, 40, 51, 70, 94, 119, 148, 180, 232, 282, 328, 379, 434, 514, 593],
+          3: [18.5, 25, 34, 43, 60, 80, 101, 126, 153, 196, 238, 276, 319, 364, 430, 497]},
+    # F und G gelten fuer einadrige Kabel frei in Luft. Laut Tabelle 25
+    # beginnen die Referenzwerte fuer diese Anordnungen erst bei 25 mm2.
+    "F": {
+        "2 v/h": [None] * 6 + [131, 162, 196, 251, 304, 352, 406, 463, 546, 629],
+        "3 v/h": [None] * 6 + [114, 143, 174, 225, 275, 321, 372, 427, 507, 587],
+        "3 Dreieck": [None] * 6 + [110, 137, 167, 216, 264, 308, 356, 409, 485, 561],
+    },
+    "G": {
+        "3 horizontal": [None] * 6 + [146, 181, 219, 281, 341, 396, 456, 521, 615, 709],
+        "3 vertikal": [None] * 6 + [130, 162, 197, 254, 311, 362, 419, 480, 569, 659],
+    },
 }
 
 STANDARD_FUSES = [6, 10, 13, 16, 20, 25, 32, 35, 40, 50, 63, 80, 100, 125, 160, 200, 224, 250, 315, 400]
@@ -112,7 +127,8 @@ def check_overload_protection(operating_current_a: float, rated_current_a: float
 
 
 def dimension_line(*, power_kw: float, voltage: float, power_factor: float, phases: int,
-                   efficiency: float, simultaneity: float, installation: str, loaded_conductors: int,
+                   efficiency: float, simultaneity: float, installation: str,
+                   loaded_conductors: int | str,
                    correction_factor: float, length_m: float, material: str, temperature_c: float,
                    max_drop_percent: float, reactance_ohm_km: float = 0.0, trip_factor: float = 1.45) -> DimensioningResult:
     current = operating_current(power_kw, voltage, power_factor, phases, efficiency, simultaneity)
@@ -122,6 +138,8 @@ def dimension_line(*, power_kw: float, voltage: float, power_factor: float, phas
     fuse = next_standard_fuse(current)
     values = AMPACITY[installation][loaded_conductors]
     for section, reference in zip(SECTIONS, values):
+        if reference is None:
+            continue
         corrected = reference * correction_factor
         overload_ok = fuse is not None and current <= fuse <= corrected
         # Fuer gG gilt typischerweise I2 = 1,6 In; fuer LS 1,45 In. Konservativ konfigurierbar.
