@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from core import (check_overload_protection, conductor_resistance, dimension_line,
+from core import (AMPACITY, check_overload_protection, conductor_resistance, dimension_line,
                   mean_power_factor, operating_current, voltage_drop)
 
 
@@ -47,6 +47,22 @@ class CoreTests(unittest.TestCase):
     def test_high_current_standard_fuse_is_available(self):
         from core import STANDARD_FUSES
         self.assertIn(400, STANDARD_FUSES)
+
+    def test_installation_methods_d_to_g_are_available(self):
+        self.assertEqual(AMPACITY["D"][3][6], 82)
+        self.assertEqual(AMPACITY["E"][3][6], 101)
+        self.assertEqual(AMPACITY["F"]["3 Dreieck"][6], 110)
+        self.assertEqual(AMPACITY["G"]["3 horizontal"][6], 146)
+
+    def test_method_f_skips_unavailable_small_sections(self):
+        result = dimension_line(
+            power_kw=20, voltage=400, power_factor=.9, phases=3, efficiency=1,
+            simultaneity=1, installation="F", loaded_conductors="3 Dreieck",
+            correction_factor=1, length_m=20, material="Kupfer",
+            temperature_c=70, max_drop_percent=3, reactance_ohm_km=.08,
+        )
+        self.assertTrue(result.successful)
+        self.assertEqual(result.section_mm2, 25)
 
 
 if __name__ == "__main__":
